@@ -118,8 +118,6 @@ early_stop = EarlyStopping(
     verbose=1
 )
 
-print("\n⚡ Early stopping enabled: patience=10, monitoring val_accuracy")
-
 history = model.fit(
     train_generator,
     validation_data=val_generator,
@@ -192,3 +190,9 @@ plt.show()
 
 print("Classification Report:")
 print(classification_report(y_true, y_pred, target_names=class_names))
+
+# -----------------------------
+# 8) Saving Model
+# -----------------------------
+model_path = 'intel_cnn_best_model.keras'
+model.save(model_path)
