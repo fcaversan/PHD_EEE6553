@@ -8,12 +8,17 @@ import requests
 from PIL import Image
 from io import BytesIO
 import matplotlib.pyplot as plt
+import urllib3
+
+# Suppress SSL warnings when verify=False is used
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 # Class names (must match training order)
 CLASS_NAMES = ['buildings', 'forest', 'glacier', 'mountain', 'sea', 'street']
 
-# Model path
-MODEL_PATH = 'intel_cnn_model.keras'  # Use existing model file
+# Model path - use absolute path relative to script location
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+MODEL_PATH = os.path.join(SCRIPT_DIR, 'intel_cnn_best_model.h5')
 
 def load_image_from_url(url_or_path):
     """
@@ -26,7 +31,7 @@ def load_image_from_url(url_or_path):
         headers = {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
         }
-        response = requests.get(url_or_path, headers=headers, timeout=10)
+        response = requests.get(url_or_path, headers=headers, timeout=10, verify=False)
         response.raise_for_status()
         img = Image.open(BytesIO(response.content))
     else:
