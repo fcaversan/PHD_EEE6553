@@ -1,0 +1,49 @@
+# Python virtual environments
+.venv/
+.venv310/
+venv/
+env/
+ENV/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Model files
+*.keras
+*.h5
+*.hdf5
+*.pkl
+*.pickle
+
+# Datasets
+datasets/
+data/
+*.csv
+
+# Images and plots
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.bmp
+*.tiff
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# IDE settings
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# PowerShell scripts (if needed, remove these lines)
+# add_cuda_to_path.ps1
+# install_cudnn.ps1
