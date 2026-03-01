@@ -1,0 +1,48 @@
+# Malicious URL Detection Model Configuration
+# All hyperparameters for reproducible training
+
+# Data paths
+data:
+  dataset_path: "../datasets/malicious_phish.csv"
+  artifacts_dir: "artifacts"
+  results_dir: "artifacts/results"
+  model_path: "artifacts/model.keras"
+  scaler_path: "artifacts/scaler.pkl"
+  tokenizer_path: "artifacts/tokenizer.json"
+
+# Data splitting
+split:
+  train_ratio: 0.70
+  val_ratio: 0.15
+  test_ratio: 0.15
+
+# Branch A: Character-level sequence processing
+branch_a:
+  embedding_dim: 32
+  cnn_filters: 128
+  cnn_kernel_size: 3
+  gru_units: 64
+
+# Branch B: Lexical heuristic features
+branch_b:
+  dense_units_1: 64
+  dense_units_2: 32
+  dropout: 0.3
+
+# Classification head
+head:
+  dense_units: 128
+  dropout: 0.5
+  num_classes: 4
+
+# Training hyperparameters
+training:
+  learning_rate: 0.001
+  batch_size: 256
+  epochs: 50
+  early_stopping_patience: 5
+  reduce_lr_patience: 3
+  reduce_lr_factor: 0.5
+
+# Reproducibility
+random_seed: 42
