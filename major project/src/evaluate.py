@@ -4,12 +4,20 @@ Classification report, confusion matrix, and performance metrics
 """
 
 import os
+import sys
 import json
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.metrics import classification_report, confusion_matrix
 from tensorflow import keras
+
+# Ensure src/ is on the path and working directory is the project root
+_SRC_DIR = os.path.dirname(os.path.abspath(__file__))
+_PROJECT_DIR = os.path.dirname(_SRC_DIR)
+if _SRC_DIR not in sys.path:
+    sys.path.insert(0, _SRC_DIR)
+os.chdir(_PROJECT_DIR)
 
 # Import local modules
 from utils import set_all_seeds, get_config

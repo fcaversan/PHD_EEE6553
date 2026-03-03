@@ -5,8 +5,17 @@ Loads saved artifacts and classifies a single URL from command line
 
 import argparse
 import json
+import os
+import sys
 import numpy as np
 from tensorflow import keras
+
+# Ensure src/ is on the path and working directory is the project root
+_SRC_DIR = os.path.dirname(os.path.abspath(__file__))
+_PROJECT_DIR = os.path.dirname(_SRC_DIR)
+if _SRC_DIR not in sys.path:
+    sys.path.insert(0, _SRC_DIR)
+os.chdir(_PROJECT_DIR)
 
 # Import local modules
 from utils import get_config
