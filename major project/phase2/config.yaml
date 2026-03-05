@@ -1,0 +1,57 @@
+# Phase 2: Hybrid URL Detection — Char + Lexical + Semantic (DistilBERT)
+# Triple-input model extending Phase 1 with a frozen transformer branch
+
+# Data paths (relative to phase2/ working directory)
+data:
+  dataset_path: "../../datasets/malicious_phish.csv"
+  artifacts_dir: "artifacts"
+  results_dir: "artifacts/results"
+  model_path: "artifacts/model.keras"
+  scaler_path: "artifacts/scaler.pkl"
+  char_tokenizer_path: "artifacts/char_tokenizer.json"
+  metadata_path: "artifacts/metadata.json"
+
+# Data splitting
+split:
+  train_ratio: 0.70
+  val_ratio: 0.15
+  test_ratio: 0.15
+
+# Branch A: Character-level sequence processing (identical to Phase 1)
+branch_a:
+  embedding_dim: 32
+  cnn_filters: 128
+  cnn_kernel_size: 3
+  gru_units: 64
+
+# Branch B: Lexical heuristic features (identical to Phase 1)
+branch_b:
+  dense_units_1: 64
+  dense_units_2: 32
+  dropout: 0.3
+
+# Branch C: Semantic (DistilBERT) — NEW in Phase 2
+branch_c:
+  model_name: "distilbert-base-uncased"
+  max_bert_length: 64      # URL word-tokens rarely exceed 64 subword tokens
+  projection_dim: 128
+  projection_dropout: 0.2
+  freeze: true             # Freeze BERT weights; only projection layer is trained
+
+# Classification head
+head:
+  dense_units: 128
+  dropout: 0.5
+  num_classes: 4
+
+# Training hyperparameters
+training:
+  learning_rate: 0.001
+  batch_size: 128          # Smaller than Phase 1 due to BERT memory footprint
+  epochs: 50
+  early_stopping_patience: 5
+  reduce_lr_patience: 3
+  reduce_lr_factor: 0.5
+
+# Reproducibility
+random_seed: 42

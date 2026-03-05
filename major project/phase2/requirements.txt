@@ -1,0 +1,15 @@
+# Phase 2 requirements
+# Core (same as Phase 1)
+tensorflow==2.10.1
+numpy<1.24
+pandas
+scikit-learn
+pyyaml
+joblib
+matplotlib
+seaborn
+
+# Phase 2 additions — Transformer-based semantic branch
+transformers>=4.30.0     # HuggingFace Transformers (TFDistilBertModel)
+torch>=2.0.0             # Required by HuggingFace tokenizer backend
+tokenizers>=0.13.0       # Fast tokenization

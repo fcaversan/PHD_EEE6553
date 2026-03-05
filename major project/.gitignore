@@ -1,7 +1,9 @@
 # Malicious URL Detection Model - Git Ignore
 
-# Artifacts directory (all model outputs)
+# Artifact directories (all model outputs, scalers, tokenizers, results)
 artifacts/
+phase1/artifacts/
+phase2/artifacts/
 *.keras
 *.h5
 *.pkl
