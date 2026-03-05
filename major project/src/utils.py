@@ -82,6 +82,46 @@ def get_config(config_path: str = "config.yaml") -> dict:
         raise yaml.YAMLError(f"Error parsing config file: {e}")
 
 
+def normalize_url(url: str) -> str:
+    """
+    Ensure every URL has an explicit scheme so that ``urlparse`` can
+    correctly split *hostname* from *path*.
+
+    The malicious_phish.csv dataset stores most benign URLs **without**
+    a scheme (e.g. ``github.com/path``), while phishing/malware URLs
+    are mixed.  ``urlparse`` treats a scheme-less URL as an opaque
+    path — ``hostname_length`` becomes 0 and ``path_length`` equals
+    the full URL length, which is wrong.
+
+    By prepending ``http://`` to any URL that lacks a scheme we make
+    all URLs structurally uniform so the model learns from
+    *genuine* lexical signals (hostname length, path depth, etc.)
+    rather than scheme-presence artefacts.
+
+    Args:
+        url: Raw URL string, possibly missing a scheme
+
+    Returns:
+        str: URL guaranteed to start with ``http://`` or ``https://``
+    """
+    if not url.startswith('http://') and not url.startswith('https://'):
+        return 'http://' + url
+    return url
+
+
+def normalize_urls_array(urls: np.ndarray) -> np.ndarray:
+    """
+    Apply normalize_url to every element of a NumPy array.
+    
+    Args:
+        urls: 1-D array of URL strings
+    
+    Returns:
+        np.ndarray: 1-D array of scheme-stripped URL strings
+    """
+    return np.array([normalize_url(u) for u in urls])
+
+
 def create_directories(config: dict) -> None:
     """
     Create necessary output directories if they don't exist.

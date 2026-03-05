@@ -23,6 +23,25 @@ from feature_engineering import extract_lexical_features, load_and_apply_scaler
 from text_processing import load_tokenizer, tokenize_and_pad
 
 
+def _strip_scheme(url: str) -> str:
+    """
+    Strip http:// or https:// from a URL for inference.
+    
+    Most benign URLs in the training dataset are stored *without* a
+    scheme, so the character-level branch learned to associate the
+    ``http(s)://`` prefix with non-benign classes.  Stripping the
+    scheme at inference aligns the input with benign training
+    patterns.  The lexical feature extractor will internally prepend
+    ``http://`` before calling ``urlparse`` so hostname/path features
+    remain correct regardless.
+    """
+    if url.startswith('https://'):
+        return url[len('https://'):]
+    if url.startswith('http://'):
+        return url[len('http://'):]
+    return url
+
+
 def classify_url(url: str, verbose: bool = True) -> dict:
     """
     Classify a single URL using trained model and saved artifacts.
@@ -34,6 +53,11 @@ def classify_url(url: str, verbose: bool = True) -> dict:
     Returns:
         dict: Classification results with predicted class and probabilities
     """
+    
+    # Strip scheme to match training data distribution
+    # (most benign training URLs lack a scheme)
+    original_url = url
+    url = _strip_scheme(url)
     
     # Load configuration
     config = get_config('config.yaml')
@@ -50,7 +74,10 @@ def classify_url(url: str, verbose: bool = True) -> dict:
         print(f"\n{'='*60}")
         print("Single-URL Classification")
         print(f"{'='*60}")
-        print(f"URL: {url}\n")
+        print(f"URL: {original_url}")
+        if original_url != url:
+            print(f"  → Normalised: {url}")
+        print()
     
     # Load model
     model_path = config['data']['model_path']

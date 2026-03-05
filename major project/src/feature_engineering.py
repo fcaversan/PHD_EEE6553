@@ -29,9 +29,15 @@ def extract_lexical_features(url: str) -> dict:
         dict: Dictionary with 23 feature names and their float32 values
     """
     
-    # Parse URL components
+    # Parse URL components.
+    # Many URLs in the dataset lack a scheme (e.g. "github.com/path").
+    # urlparse treats those as an opaque path (netloc=''), giving
+    # hostname_length=0 and path_length=full URL.  Temporarily
+    # prepending "http://" ensures correct hostname/path splitting
+    # without altering the raw URL used for character tokenisation.
     try:
-        parsed = urlparse(url)
+        parse_url = url if url.startswith(('http://', 'https://')) else 'http://' + url
+        parsed = urlparse(parse_url)
         hostname = parsed.netloc
         path = parsed.path
     except Exception:
