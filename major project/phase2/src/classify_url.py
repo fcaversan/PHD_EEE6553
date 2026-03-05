@@ -10,6 +10,7 @@ import os
 import sys
 import numpy as np
 from tensorflow import keras
+from transformers import TFDistilBertModel
 
 _SRC_DIR     = os.path.dirname(os.path.abspath(__file__))
 _PROJECT_DIR = os.path.dirname(_SRC_DIR)
@@ -80,7 +81,10 @@ def classify_url(url: str, verbose: bool = True) -> dict:
         print()
 
     # ── Load model + tokenizers ──────────────────────────────────
-    model    = keras.models.load_model(config['data']['model_path'])
+    model    = keras.models.load_model(
+        config['data']['model_path'],
+        custom_objects={'TFDistilBertModel': TFDistilBertModel}
+    )
     char_tok = _load_char_tokenizer(config['data']['char_tokenizer_path'])
 
     from transformers import AutoTokenizer as HFAutoTok

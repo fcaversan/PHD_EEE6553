@@ -13,6 +13,7 @@ import seaborn as sns
 from sklearn.metrics import classification_report, confusion_matrix
 from matplotlib.patches import Rectangle
 from tensorflow import keras
+from transformers import TFDistilBertModel
 
 _SRC_DIR     = os.path.dirname(os.path.abspath(__file__))
 _PROJECT_DIR = os.path.dirname(_SRC_DIR)
@@ -98,7 +99,10 @@ def evaluate_model():
     bert_name     = metadata['bert_model_name']
     print(f"✓ Metadata loaded  max_char={max_char_len}  max_bert={max_bert_len}")
 
-    model = keras.models.load_model(config['data']['model_path'])
+    model = keras.models.load_model(
+        config['data']['model_path'],
+        custom_objects={'TFDistilBertModel': TFDistilBertModel}
+    )
     print(f"✓ Model loaded from: {config['data']['model_path']}")
 
     char_tok = _load_char_tokenizer(config['data']['char_tokenizer_path'])
