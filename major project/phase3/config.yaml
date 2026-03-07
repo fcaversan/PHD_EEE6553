@@ -25,6 +25,7 @@ branch_a:
 
 # Branch B: Lexical heuristic features
 branch_b:
+  input_features: 27
   dense_units_1: 64
   dense_units_2: 32
   dropout: 0.3
