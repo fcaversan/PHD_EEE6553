@@ -1,6 +1,7 @@
 # Python virtual environments
 .venv/
 .venv310/
+.venv-tf-gpu/
 venv/
 env/
 ENV/
