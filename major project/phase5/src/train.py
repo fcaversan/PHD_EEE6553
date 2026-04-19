@@ -2,8 +2,7 @@
 Training pipeline for Phase 5 — Hierarchical Two-Stage Classification.
 Usage:
     python src/train.py --stage 1   # Binary: benign vs malicious
-    python src/train.py --stage 2   # 3-class: defacement / malware / phishing
-"""
+    python src/train.py --stage 2   # 3-class: defacement / malware / phishing    python src/train.py --stage 3   # 4-class: benign / defacement / malware / phishing"""
 
 import os
 import sys
@@ -47,8 +46,10 @@ def train_stage(stage: int):
     print(f"PHASE 5 — STAGE {stage} TRAINING")
     if stage == 1:
         print("Binary: benign vs malicious")
-    else:
+    elif stage == 2:
         print("3-class: defacement / malware / phishing")
+    else:
+        print("4-class: benign / defacement / malware / phishing")
     print("=" * 60)
 
     config = get_config('config.yaml')
@@ -57,7 +58,7 @@ def train_stage(stage: int):
     create_directories(config)
 
     stage_key = f'stage{stage}'
-    mode = 'binary' if stage == 1 else 'malicious_only'
+    mode = {1: 'binary', 2: 'malicious_only', 3: 'multiclass'}[stage]
     num_classes = config[stage_key]['num_classes']
 
     # ── Load data ────────────────────────────────────────────
@@ -150,7 +151,7 @@ def train_stage(stage: int):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--stage', type=int, required=True, choices=[1, 2],
-                        help='1 = binary (benign vs malicious), 2 = malicious sub-class')
+    parser.add_argument('--stage', type=int, required=True, choices=[1, 2, 3],
+                        help='1 = binary, 2 = malicious sub-class, 3 = full 4-class')
     args = parser.parse_args()
     train_stage(args.stage)

@@ -116,8 +116,9 @@ def build_model(vocab_size: int, max_sequence_length: int, num_classes: int, con
 
     output = layers.Dense(output_units, activation=activation, name='output')(h)
 
+    stage_name = {2: '1_binary', 3: '2_malicious', 4: '3_multiclass'}.get(num_classes, str(num_classes))
     model = Model(inputs=[input_seq, input_feat], outputs=output,
-                  name=f'url_detector_stage{"1" if num_classes == 2 else "2"}')
+                  name=f'url_detector_stage{stage_name}')
 
     model.summary()
     print(f"\n✓ Model built — {num_classes}-class, {model.count_params():,} params")

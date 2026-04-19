@@ -28,6 +28,14 @@ stage2:
   metadata_path: "artifacts/stage2_metadata.json"
   num_classes: 3
 
+# Stage 3: Full 4-class classifier (like Phases 1-4, with brand cross-attention)
+stage3:
+  model_path: "artifacts/stage3_model.keras"
+  scaler_path: "artifacts/stage3_scaler.pkl"
+  tokenizer_path: "artifacts/stage3_tokenizer.json"
+  metadata_path: "artifacts/stage3_metadata.json"
+  num_classes: 4
+
 # Data splitting
 split:
   train_ratio: 0.70

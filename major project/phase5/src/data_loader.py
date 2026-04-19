@@ -44,8 +44,14 @@ def load_dataset(csv_path: str, config: dict, mode: str = 'binary') -> tuple:
         print(f"\n  Malicious-only mode: {label_classes}")
         print(f"  Filtered to {len(df)} malicious URLs")
 
+    elif mode == 'multiclass':
+        # Full 4-class: benign, defacement, malware, phishing
+        label_classes = ['benign', 'defacement', 'malware', 'phishing']
+        num_classes = config['stage3']['num_classes']
+        print(f"\n  Multiclass mode: {label_classes}")
+
     else:
-        raise ValueError(f"Unknown mode: {mode}. Use 'binary' or 'malicious_only'")
+        raise ValueError(f"Unknown mode: {mode}. Use 'binary', 'malicious_only', or 'multiclass'")
 
     # Print class distribution
     print(f"\n  Class distribution:")
