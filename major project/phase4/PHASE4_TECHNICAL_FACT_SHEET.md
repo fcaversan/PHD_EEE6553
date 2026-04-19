@@ -229,9 +229,11 @@ Training ran for 13 epochs with early stopping. Best epoch was epoch 8 based on 
 
 ## 8. Test Set Evaluation Results
 
-**Test set:** 208,494 samples (15% holdout, stratified)
+### 8.1 Augmented (Merged) Test Set
 
-### Classification Report
+**Test set:** 208,494 samples (15% holdout, stratified from merged dataset — 60.7% phishing)
+
+#### Classification Report (Augmented Test Set)
 
 | Class | Precision | Recall | F1-Score | Support |
 |---|---|---|---|---|
@@ -242,25 +244,51 @@ Training ran for 13 epochs with early stopping. Best epoch was epoch 8 based on 
 
 | Metric | Value |
 |---|---|
-| **Overall Accuracy** | **99.11%** |
+| **Overall Accuracy (Augmented)** | **99.11%** |
 | Macro Avg Precision | 0.9898 |
 | Macro Avg Recall | 0.9759 |
 | Macro Avg F1 | 0.9826 |
 | Weighted Avg F1 | 0.9911 |
 
-### Comparison with Phase 1/3 (Kaggle-only)
+### 8.2 Kaggle-Only Test Set Evaluation (Apples-to-Apples Cross-Phase Comparison)
 
-| Metric | Phase 1 (seed=42) | Phase 4 |
-|---|---|---|
-| Overall Accuracy | 98.30% | **99.11%** (+0.81pp) |
-| Phishing F1 | 0.9436 | **0.9928** (+0.0492) |
-| Phishing Precision | 0.9478 | **0.9941** (+0.0463) |
-| Phishing Recall | 0.9395 | **0.9916** (+0.0521) |
-| Benign F1 | 0.9904 | 0.9895 (−0.0009) |
-| Defacement F1 | 0.9953 | 0.9908 (−0.0045) |
-| Malware F1 | 0.9703 | 0.9572 (−0.0131) |
+To enable a fair comparison with Phases 1–3, the Phase 4 trained model was also evaluated on the **original Kaggle-only test set** (96,168 samples, 70/15/15 stratified split, seed=42) — the same test set used in all prior phases.
 
-**Key finding:** Adding 732K real phishing URLs dramatically improved phishing detection (F1 +0.049), increasing overall accuracy to 99.11%. The trade-off is a minor decrease in defacement and malware F1, consistent with the class rebalancing toward phishing.
+**Test set:** 96,168 samples (original Kaggle distribution: 66.77% benign, 14.87% defacement, 3.69% malware, 14.68% phishing)
+
+#### Classification Report (Kaggle-Only Test Set)
+
+| Class | Precision | Recall | F1-Score | Support |
+|---|---|---|---|---|
+| benign | 0.9882 | 0.9949 | 0.9915 | 64,212 |
+| defacement | 0.9987 | 0.9953 | 0.9970 | 14,296 |
+| malware | 0.9961 | 0.9414 | 0.9680 | 3,547 |
+| phishing | 0.9588 | 0.9459 | 0.9523 | 14,113 |
+
+| Metric | Value |
+|---|---|
+| **Overall Accuracy** | **98.58%** |
+| Macro Avg Precision | 0.9854 |
+| Macro Avg Recall | 0.9694 |
+| Macro Avg F1 | 0.9772 |
+| Weighted Avg F1 | 0.9857 |
+
+### 8.3 Cross-Phase Comparison (All on Kaggle-Only Test Set)
+
+| Metric | Phase 1 | Phase 2 | Phase 3 | **Phase 4** |
+|---|---|---|---|---|
+| **Overall Accuracy** | 98.30% | 98.45% | 98.37% | **98.58%** |
+| **Phishing F1** | 0.9436 | 0.9485 | 0.9455 | **0.9523** |
+| Phishing Precision | 0.9478 | 0.9523 | 0.9541 | **0.9588** |
+| Phishing Recall | 0.9395 | 0.9448 | 0.9372 | **0.9459** |
+| Benign F1 | 0.9904 | 0.9908 | 0.9905 | **0.9915** |
+| Defacement F1 | 0.9953 | 0.9955 | 0.9946 | **0.9970** |
+| Malware F1 | 0.9703 | 0.9683 | 0.9672 | 0.9680 |
+
+**Key findings:**
+- On an identical test distribution, Phase 4's data augmentation yields the best results across **all** phases: +0.28pp accuracy and +0.0087 phishing F1 vs Phase 1.
+- Unlike the augmented test set results (§8.1), the Kaggle-only evaluation shows **no regressions** in minority class performance — defacement F1 actually improved to 0.9970 (best ever), and malware F1 (0.9680) is comparable to Phase 1.
+- The in-distribution augmented test set metrics (99.11% accuracy, 0.9928 phishing F1) reflect performance on the shifted 60.7%-phishing distribution. The Kaggle-only results (98.58%, 0.9523) provide the fair cross-phase comparison.
 
 ---
 
@@ -337,7 +365,8 @@ The most critical misclassification pattern is **Phishing → Benign** (false ne
 | Feature scaler | `artifacts/scaler.pkl` | Fitted StandardScaler (joblib, 27 features) |
 | Metadata | `artifacts/metadata.json` | max_sequence_length=168, vocab_size=331, n_lexical_features=27 |
 | Training curves | `artifacts/results/training_curves.png` | Loss + accuracy vs. epoch |
-| Classification report | `artifacts/results/classification_report.txt` | Per-class P/R/F1, overall accuracy |
+| Classification report | `artifacts/results/classification_report.txt` | Per-class P/R/F1, overall accuracy (augmented test set) |
+| Kaggle-only report | `artifacts/results/kaggle_only_classification_report.txt` | Per-class P/R/F1, overall accuracy (original Kaggle test set) |
 | Confusion matrix | `artifacts/results/confusion_matrix.png` | 4×4 confusion matrix |
 
 ### Data Pipeline Artifacts

@@ -1,0 +1,74 @@
+# Phase 5: Hierarchical Two-Stage Classification
+# Stage 1: Binary (benign vs malicious) — optimized to beat Khan's 99.08%
+# Stage 2: 3-class sub-classification (defacement, malware, phishing) — malicious only
+# Same dual-input architecture as Phase 4 (Char CNN-BiGRU-Attention + Brand-Aware MLP)
+
+# Data paths
+data:
+  # Use Phase 4's merged augmented dataset for training
+  dataset_path: "../phase4/data_pipeline/processed/merged_dataset.csv"
+  # Original Kaggle for fair cross-phase evaluation
+  kaggle_path: "../../datasets/malicious_phish.csv"
+  artifacts_dir: "artifacts"
+  results_dir: "artifacts/results"
+
+# Stage 1: Binary classifier (benign vs malicious)
+stage1:
+  model_path: "artifacts/stage1_model.keras"
+  scaler_path: "artifacts/stage1_scaler.pkl"
+  tokenizer_path: "artifacts/stage1_tokenizer.json"
+  metadata_path: "artifacts/stage1_metadata.json"
+  num_classes: 2
+
+# Stage 2: Malicious sub-classifier (defacement, malware, phishing)
+stage2:
+  model_path: "artifacts/stage2_model.keras"
+  scaler_path: "artifacts/stage2_scaler.pkl"
+  tokenizer_path: "artifacts/stage2_tokenizer.json"
+  metadata_path: "artifacts/stage2_metadata.json"
+  num_classes: 3
+
+# Data splitting
+split:
+  train_ratio: 0.70
+  val_ratio: 0.15
+  test_ratio: 0.15
+
+# Branch A: Character-level sequence processing
+branch_a:
+  embedding_dim: 32
+  cnn_filters: 128
+  cnn_kernel_size: 3
+  gru_units: 64
+
+# Branch B: Lexical heuristic features (27 = 23 baseline + 4 brand)
+branch_b:
+  input_features: 27
+  dense_units_1: 64
+  dense_units_2: 32
+  dropout: 0.3
+
+# Classification head
+head:
+  dense_units: 128
+  dropout: 0.5
+
+# Gated Brand Cross-Attention (impersonation defense)
+# Slices the 4 brand features from Branch B input, projects them as a
+# query over the BiGRU sequence, and applies a learned sigmoid gate.
+# When brand signals are zero, gate ≈ 0 → no interference on clean URLs.
+brand_attention:
+  enabled: true
+  n_brand_features: 4
+
+# Training hyperparameters
+training:
+  learning_rate: 0.001
+  batch_size: 256
+  epochs: 50
+  early_stopping_patience: 15
+  reduce_lr_patience: 5
+  reduce_lr_factor: 0.5
+
+# Reproducibility
+random_seed: 42
