@@ -1,245 +1,229 @@
-# Malicious URL Detection Model
+# Malicious URL Detection — Multi-Stream Hybrid Deep Learning
 
-A dual-input hybrid deep learning system for classifying URLs into four categories: **Benign**, **Defacement**, **Phishing**, and **Malware**.
+A multi-stream hybrid deep learning system for classifying URLs, developed over five iterative phases. The final model combines a CNN-BiGRU-Attention character encoder, a brand-aware lexical MLP, and a novel **Gated Brand Cross-Attention** mechanism, achieving **99.15% binary accuracy** (surpassing Khan et al. 99.08%) and **98.69% four-class accuracy** on the Kaggle benchmark.
 
 ## Project Overview
 
-This project implements a state-of-the-art malicious URL detection system using a dual-branch neural network architecture:
+This project implements a malicious URL detection system that bridges character-level deep learning with hand-crafted domain-specific features. Over five phases, the architecture evolved from a dual-input baseline to a three-stream model:
 
-- **Branch A (Sequence Analysis)**: Character-level CNN + Bi-GRU + Attention for deep feature learning
-- **Branch B (Heuristic Analysis)**: 23 deterministic lexical features processed through dense layers
-- **Classification Head**: Merged representation with 4-class softmax output
+- **Branch A (Sequence)**: Character-level CNN → BiGRU → Self-Attention → GlobalAvgPool (128-d)
+- **Branch B (Lexical)**: 27 heuristic features (23 baseline + 4 brand-aware) through a Dense MLP (32-d)
+- **Gated Brand Cross-Attention** (Phase 5): Brand features query the BiGRU sequence via cross-attention, gated by a learned sigmoid that silences the stream on non-brand URLs (128-d)
+- **Classification Head**: 3-stream concatenation (288-d) → Dense → Sigmoid (binary) or Softmax (4-class)
 
-**Key Features:**
-- 🎯 Targets ≥95% overall accuracy with <5% Phishing→Benign misclassification
-- 🔄 Fully reproducible with deterministic preprocessing and seeded training
-- 📊 Data-driven max_sequence_length (95th percentile, not hardcoded)
-- 💾 Complete artifact persistence for inference without retraining
-- 🧪 Comprehensive unit tests for all modules
+## Phase Evolution
+
+| Phase | Key Change | 4-Class Acc. | Binary Acc. |
+|-------|-----------|-------------|------------|
+| **Phase 1** | Baseline dual-input (CNN-BiGRU-Attn + 23-feat MLP) | 98.30% | 98.58%* |
+| **Phase 2** | + Frozen DistilBERT (triple-input, 66.6M params) | 98.45% | — |
+| **Phase 3** | − DistilBERT, + 4 brand features (27 total) | 98.37% | — |
+| **Phase 4** | Data augmentation (641K → 1.39M URLs) | 98.58% | 98.86%* |
+| **Phase 5** | + Gated Brand Cross-Attention (3-stream, 140K params) | **98.69%** | **99.15%** |
+
+*\*Binary accuracy from collapsed 4-class predictions, not retrained as binary.*
 
 ## Project Structure
 
 ```
 major project/
-├── src/
-│   ├── data_loader.py            # Dataset loading and splitting
-│   ├── feature_engineering.py    # 23 lexical feature extractors
-│   ├── text_processing.py        # Character-level tokenization
-│   ├── model_builder.py          # Dual-input Keras model
-│   ├── train.py                  # Training pipeline
-│   ├── evaluate.py               # Evaluation with metrics
-│   ├── classify_url.py           # Single-URL inference
-│   └── utils.py                  # Shared utilities
-├── tests/                        # Unit tests
-├── artifacts/                    # Saved models & artifacts (gitignored)
+├── phase1/                       # Baseline dual-input model
+├── phase2/                       # + DistilBERT branch
+├── phase3/                       # + Brand-aware features
+├── phase4/                       # + Data augmentation (1.39M URLs)
+│   └── data_pipeline/            # Augmented dataset preparation
+├── phase5/                       # + Gated Brand Cross-Attention (final)
+│   ├── src/
+│   │   ├── train.py              # Training (--stage 1|2|3)
+│   │   ├── evaluate.py           # Evaluation (--stage 1|3)
+│   │   ├── model_builder.py      # 3-stream architecture with brand cross-attn
+│   │   ├── data_loader.py        # Binary / malicious-only / multiclass modes
+│   │   ├── feature_engineering.py # 27 lexical features
+│   │   ├── brand_features.py     # Brand impersonation detection features
+│   │   ├── stress_test.py        # 16-URL brand impersonation test
+│   │   ├── threshold_sweep.py    # Binary decision threshold optimization
+│   │   ├── error_analysis.py     # Cross-model error comparison
+│   │   ├── text_processing.py    # Character-level tokenization
+│   │   └── utils.py              # Shared utilities
+│   ├── artifacts/                # Saved models & results (gitignored)
+│   ├── config.yaml               # All hyperparameters
+│   └── requirements.txt
+├── specs/                        # Spec-Kit specifications
+├── spec-kit/                     # Spec-Kit framework
 ├── datasets/                     # Training data (gitignored)
-├── config.yaml                   # All hyperparameters
-├── requirements.txt              # Python dependencies
+├── PHASE_COMPARISON.md           # Cross-phase results comparison
 └── README.md                     # This file
 ```
 
 ## Setup Instructions
 
-### 1. Install Dependencies
+### 1. Prerequisites
+
+- **Python 3.10** (required for TensorFlow 2.10 GPU on Windows)
+- **CUDA 11.2 + cuDNN 8.1** (for GPU acceleration)
+- **NVIDIA GPU** with ≥6GB VRAM (tested on RTX 4060)
+
+### 2. Install Dependencies
 
 ```powershell
-# Create virtual environment (recommended)
-python -m venv venv
-.\venv\Scripts\Activate.ps1
-
-# Install requirements
-pip install -r requirements.txt
+pip install -r phase5/requirements.txt
 ```
 
-### 2. Download Dataset
+### 3. Datasets
 
-The dataset `malicious_phish.csv` should be placed in the `datasets/` folder.
+Two datasets are required:
 
-**Dataset details:**
-- Source: Kaggle malicious URLs dataset
-- Size: 651,191 URL records
-- Classes: benign (428K), defacement (96K), phishing (94K), malware (33K)
-- Format: CSV with columns `url` and `type`
+| Dataset | Path | Size | Source |
+|---------|------|------|--------|
+| Kaggle `malicious_phish.csv` | `datasets/malicious_phish.csv` | 641K URLs | Kaggle |
+| Augmented merged dataset | `phase4/data_pipeline/processed/merged_dataset.csv` | 1.39M URLs | Kaggle + GitHub Phishing.Database + Synthetic |
 
-```powershell
-# Ensure dataset is in the correct location:
-# datasets/malicious_phish.csv
-```
-
-The config is already set to: `../datasets/malicious_phish.csv`
-
-### 3. Verify GPU (Optional but Recommended)
+### 4. Verify GPU
 
 ```powershell
 python -c "import tensorflow as tf; print(tf.config.list_physical_devices('GPU'))"
 ```
 
-## Usage
+## Usage (Phase 5 — Final Model)
 
-### Training the Model
-
-```powershell
-cd src
-python train.py
-```
-
-**Output artifacts:**
-- `artifacts/model.keras` - Trained model
-- `artifacts/scaler.pkl` - Feature scaler
-- `artifacts/tokenizer.json` - Character tokenizer
-- `artifacts/metadata.json` - Training metadata
-- `artifacts/results/training_curves.png` - Loss/accuracy plots
-
-**Expected training time:** ≤2 hours on GPU (NVIDIA RTX 3060 or better)
-
-### Evaluating the Model
+### Training
 
 ```powershell
-cd src
-python evaluate.py
+cd "major project/phase5"
+
+# Stage 1: Binary classifier (benign vs malicious) — beats Khan et al.
+python src/train.py --stage 1
+
+# Stage 3: Full 4-class classifier (benign, defacement, malware, phishing)
+python src/train.py --stage 3
+
+# Stage 2: Malicious sub-classifier (defacement, malware, phishing only)
+python src/train.py --stage 2
 ```
 
-**Generated reports:**
-- `artifacts/results/classification_report.txt` - Per-class metrics
-- `artifacts/results/confusion_matrix.png` - Visualization with Phishing→Benign highlight
-
-**Success criteria checks:**
-- ✓ Overall accuracy ≥ 95%
-- ✓ Phishing F1-score ≥ 0.93
-- ✓ Phishing→Benign misclassification ≤ 5%
-
-### Classifying Individual URLs
+### Evaluation
 
 ```powershell
-cd src
-python classify_url.py --url "http://example.com/suspicious-login"
+# Binary evaluation on Kaggle test set (comparison with Khan et al. 99.08%)
+python src/evaluate.py --stage 1
+
+# 4-class evaluation on Kaggle test set
+python src/evaluate.py --stage 3
 ```
 
-**Example output:**
-```
-Predicted Class: PHISHING
-Confidence:      87.34%
-
-Class Probabilities:
-  benign         :   8.21%
-  defacement     :   2.15%
-  phishing       :  87.34%
-  malware        :   2.30%
-```
-
-**Quiet mode** (returns only class name):
-```powershell
-python classify_url.py --url "http://example.com" --quiet
-```
-
-### Running Unit Tests
+### Stress Test (Brand Impersonation)
 
 ```powershell
-# Install pytest if not already installed
-pip install pytest
-
-# Run all tests
-pytest tests/ -v
-
-# Run specific test module
-pytest tests/test_feature_engineering.py -v
+python src/stress_test.py
 ```
 
-## Configuration
+Tests 16 curated URLs (8 legitimate brand, 8 impersonation phishing) to evaluate brand impersonation detection.
 
-All hyperparameters are in `config.yaml`. Key parameters:
+### Threshold Sweep
 
-| Parameter | Default | Description |
-|-----------|---------|-------------|
+```powershell
+python src/threshold_sweep.py
+```
+
+## Final Results (Phase 5, Kaggle Test Set, 96,168 samples)
+
+### Binary Classification (Stage 1)
+
+| Metric | Value |
+|--------|-------|
+| **Overall Accuracy** | **99.15%** |
+| Khan et al. Benchmark | 99.08% |
+| False Positives (benign → malicious) | 274 |
+| False Negatives (malicious → benign) | 541 |
+
+### 4-Class Classification (Stage 3)
+
+| Class | Precision | Recall | F1-Score | Support |
+|-------|-----------|--------|----------|---------|
+| Benign | 0.9889 | 0.9955 | 0.9922 | 64,212 |
+| Defacement | 0.9966 | 0.9977 | 0.9972 | 14,296 |
+| Malware | 0.9961 | 0.9462 | 0.9705 | 3,547 |
+| Phishing | 0.9651 | 0.9472 | 0.9561 | 14,113 |
+| **Overall** | | | | **98.69%** |
+
+- **Phishing→Benign misclassification:** 704/14,113 (4.99%) — satisfies ≤5% safety threshold
+
+### Brand Impersonation Stress Test
+
+| Metric | Phase 2 | Phase 3 | Phase 4 | Phase 5 |
+|--------|---------|---------|---------|---------|
+| Impersonation detected (of 8) | 0 | 0 | 0 | **0** |
+| Benign correct (of 8) | 6 | 7 | 7 | 4 |
+
+The zero-day brand impersonation vulnerability persists across all phases — a fundamental limitation of purely string-based URL classification.
+
+## Model Architecture (Phase 5)
+
+```
+Input A (168 chars)              Input B (27 features)
+       ↓                               ↓
+  Embedding(332→32)              Dense(64, ReLU)
+       ↓                               ↓
+  Conv1D(128, k=3)               Dropout(0.3)
+       ↓                               ↓
+  MaxPooling(2)                  Dense(32, ReLU) → Branch B (32-d)
+       ↓                               ↓
+  BiGRU(64) ─── Key/Value ───→  Brand Slice (last 4 features)
+       ↓                               ↓           ↓
+  Self-Attention                 Query Proj    Sigmoid Gate
+       ↓                          (4→128)       (4→128)
+  GlobalAvgPool                      ↓              ↓
+       ↓                        Cross-Attention  ── × ──→ Gated Brand Ctx (128-d)
+  Branch A (128-d)                                  
+       ↓                                            ↓
+       └──────────── Concatenate (128 + 128 + 32 = 288-d) ──────────┘
+                                    ↓
+                            Dense(128, ReLU)
+                                    ↓
+                             Dropout(0.5)
+                                    ↓
+                    Sigmoid (binary) │ Softmax (4-class)
+```
+
+## Configuration (Phase 5)
+
+| Parameter | Value | Description |
+|-----------|-------|-------------|
 | `embedding_dim` | 32 | Character embedding dimension |
 | `cnn_filters` | 128 | Conv1D filters in Branch A |
-| `gru_units` | 64 | Bi-GRU units in Branch A |
-| `learning_rate` | 0.001 | Adam optimizer learning rate |
+| `gru_units` | 64 | BiGRU units (128-d output bidirectional) |
+| `n_brand_features` | 4 | Brand features for cross-attention |
+| `learning_rate` | 0.001 | Adam optimizer initial LR |
 | `batch_size` | 256 | Training batch size |
-| `early_stopping_patience` | 5 | Epochs to wait before early stopping |
+| `early_stopping_patience` | 15 | Epochs past best before stopping |
+| `reduce_lr_patience` | 5 | Epochs before LR reduction |
 | `random_seed` | 42 | Seed for reproducibility |
 
-## Data Pipeline
+## Environment
 
-### Branch A: Character Sequences
-1. Fit character-level tokenizer on training URLs
-2. Compute `max_sequence_length` from 95th percentile
-3. Tokenize and pad sequences (post-padding)
-
-### Branch B: Lexical Features (23 total)
-1. Length features: URL, hostname, path
-2. Character counts: `.`, `-`, `@`, `?`, `&`, `=`, `_`, `~`, `%`, `*`, `:`
-3. Substring counts: `www`, `https`, `http`, digits, letters, directories
-4. Boolean flags: IP address, URL shortener detection
-
-All features are deterministic and scaled with `StandardScaler`.
-
-## Model Architecture
-
-```
-Input A (Sequences)          Input B (Features)
-       ↓                            ↓
-   Embedding(32)              Dense(64, relu)
-       ↓                            ↓
-   Conv1D(128, 3)             Dropout(0.3)
-       ↓                            ↓
-   MaxPooling(2)               Dense(32, relu)
-       ↓
-  Bi-GRU(64)
-       ↓
-   Attention
-       ↓
-       └──────── Concatenate ───────┘
-                     ↓
-              Dense(128, relu)
-                     ↓
-              Dropout(0.5)
-                     ↓
-            Dense(4, softmax)
-```
-
-## Spec-Kit Workflow
-
-This project was developed using [GitHub Spec-Kit](https://github.com/github/spec-kit) methodology:
-
-1. **Constitution** (`.specify/memory/constitution.md`) - Project principles
-2. **Specification** (`specs/001-malicious-url-detection/spec.md`) - Requirements
-3. **Plan** (`specs/001-malicious-url-detection/plan.md`) - Architecture decisions
-4. **Tasks** (`specs/001-malicious-url-detection/tasks.md`) - Implementation roadmap
-
-## Performance Targets
-
-| Metric | Target | Notes |
-|--------|--------|-------|
-| Overall Accuracy | ≥ 95% | On test set (15% of data) |
-| Phishing F1-Score | ≥ 0.93 | Critical for phishing detection |
-| Phishing→Benign | ≤ 5% | Misclassification rate |
-| Training Time | ≤ 2 hours | On NVIDIA RTX 3060 or better |
-| Zero NaN Features | 100% | All 23 features must be deterministic |
+| Component | Version |
+|-----------|---------|
+| Python | 3.10 |
+| TensorFlow | 2.10.1 |
+| NumPy | <2.0 (pinned for TF 2.10) |
+| CUDA | 11.2 |
+| cuDNN | 8.1 |
+| GPU | NVIDIA GeForce RTX 4060 |
 
 ## Troubleshooting
 
 **GPU not detected:**
 ```powershell
-# Check CUDA installation
 nvidia-smi
-
-# Check TensorFlow GPU support
 python -c "import tensorflow as tf; print(tf.config.list_physical_devices('GPU'))"
 ```
 
-**Out of memory during training:**
-- Reduce `batch_size` in `config.yaml` (try 128 or 64)
-- Close other GPU-intensive applications
+**Out of memory:** Reduce `batch_size` in `config.yaml` (try 128 or 64).
 
-**File not found errors:**
-- Verify dataset path in `config.yaml`
-- Ensure you're running scripts from the `src/` directory
+**Slow feature extraction:** The Levenshtein distance computation in `brand_features.py` takes ~15–20 minutes on 1M URLs. This is a known bottleneck.
+
+**Lambda layer warning on model load:** The `brand_slice` Lambda layer generates a deserialization warning. Functionally harmless.
 
 ## License
 
-This project is developed for academic research purposes (PHD_EEE6553).
-
-## Contact
-
-For questions or issues, please refer to the project specification documents in `specs/001-malicious-url-detection/`.
+This project is developed for academic research purposes (EEE6553 — PhD programme).
